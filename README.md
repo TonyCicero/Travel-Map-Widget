@@ -74,17 +74,6 @@ The Travel Map Widget allows you to embed an interactive map on your WordPress s
   ![Globe](assets/globe.png)
 
 
-## Frequently Asked Questions
-
-- **Why am I seeing a "travelMapVars is not defined" error?**
-  - This may occur if scripts fail to load. Clear your browser cache, disable caching plugins, or ensure the plugin files are correctly uploaded. Check the browser console (F12 > Console) for details.
-
-- **How do I add new locations?**
-  - Update the GeoJSON files or add custom locations via the settings page checkboxes. Ensure names match the GeoJSON properties (`name` for countries, `NAME` for states).
-
-- **Can I change the map colors?**
-  - Yes, edit the `fillColor`, `color`, and `fillOpacity` values in the JavaScript within `travel-map-widget.php`.
-
 ## Changelog
 
 - **1.0.0**:
