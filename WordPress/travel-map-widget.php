@@ -179,7 +179,7 @@ function travel_map_widget_shortcode() {
                             fillOpacity: 0.3
                         },
                         onEachFeature: (feature, layer) => {
-                            const name = feature.properties.NAME || 'Unknown';
+                            const name = feature.properties.name || 'Unknown';
                             const slug = name.toLowerCase().replace(/\s+/g, '-').trim();
                             layer.bindPopup(name);
                             layer.on('click', () => {
