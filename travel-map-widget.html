@@ -257,7 +257,7 @@
               window.location.href = `${baseUrl}/wp/location/${slug}`;
             });
           }
-        }).addTo(flatMap);
+        }).addTo(flatMap).bringToFront();;
       })
       .catch(error => {
         console.error('Error loading US states GeoJSON:', error);
