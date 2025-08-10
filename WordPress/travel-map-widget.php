@@ -186,7 +186,7 @@ function travel_map_widget_shortcode() {
                                 window.location.href = `${baseUrl}${permalinkBase}${slug}`;
                             });
                         }
-                    }).addTo(flatMap);
+                    }).addTo(flatMap).bringToFront();;
                 })
                 .catch(error => {
                     console.error('Error loading US states GeoJSON:', error);
