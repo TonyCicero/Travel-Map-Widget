@@ -110,7 +110,7 @@ function travel_map_widget_shortcode() {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                 maxZoom: 18,
                 minZoom: 2
-            }).addTo(flatMap);
+            }).addTo(flatMap).bringToBack();
 
             // Load and render countries for flat map
             fetch(countryGeoJsonUrl)
