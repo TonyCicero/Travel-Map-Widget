@@ -140,12 +140,24 @@ function travel_map_widget_shortcode() {
                         onEachFeature: (feature, layer) => {
                             const name = feature.properties.name || 'Unknown';
                             const slug = name.toLowerCase().replace(/\s+/g, '-').trim();
-                            layer.bindPopup(name);
+                            // Hover tooltip
+                            let hoverTimeout;
+                            layer.on('mouseover', (e) => {
+                                hoverTimeout = setTimeout(() => {
+                                    layer.bindPopup(name, { className: 'hover-tooltip' }).openPopup();
+                                }, 300);
+                            });
+                            layer.on('mouseout', () => {
+                                clearTimeout(hoverTimeout);
+                                layer.closePopup();
+                            });
+
+                            // Click action
                             layer.on('click', () => {
                                 window.location.href = `${baseUrl}${permalinkBase}${slug}`;
                             });
                         }
-                    }).addTo(flatMap);
+                    }).addTo(flatMap).bringToFront();;
                     flatMap.fitBounds(geoLayer.getBounds());
                 })
                 .catch(error => {
@@ -181,12 +193,25 @@ function travel_map_widget_shortcode() {
                         onEachFeature: (feature, layer) => {
                             const name = feature.properties.name || 'Unknown';
                             const slug = name.toLowerCase().replace(/\s+/g, '-').trim();
-                            layer.bindPopup(name);
+
+                            // Hover tooltip
+                            let hoverTimeout;
+                            layer.on('mouseover', (e) => {
+                                hoverTimeout = setTimeout(() => {
+                                    layer.bindPopup(name, { className: 'hover-tooltip' }).openPopup();
+                                }, 300);
+                            });
+                            layer.on('mouseout', () => {
+                                clearTimeout(hoverTimeout);
+                                layer.closePopup();
+                            });
+
+                            // Click action
                             layer.on('click', () => {
                                 window.location.href = `${baseUrl}${permalinkBase}${slug}`;
                             });
                         }
-                    }).addTo(flatMap).bringToFront();;
+                    }).addTo(flatMap);
                 })
                 .catch(error => {
                     console.error('Error loading US states GeoJSON:', error);
