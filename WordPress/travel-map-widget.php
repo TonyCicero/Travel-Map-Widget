@@ -159,63 +159,62 @@ function travel_map_widget_shortcode() {
                         }
                     }).addTo(flatMap).bringToFront();;
                     flatMap.fitBounds(geoLayer.getBounds());
+
+                    // Load and render US states for flat map
+                    fetch(usStatesGeoJsonUrl).then(response => {
+                        if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load US states GeoJSON`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (!data.features) throw new Error('Invalid GeoJSON: No features found');
+                        // Filter by displayedLocations and valid geometries
+                        data.features = data.features.filter(feature => 
+                            isValidGeometry(feature.geometry) && 
+                            displayedLocations.includes(feature.properties.name)
+                        );
+                        if (data.features.length === 0) {
+                            showError('No matching US states found in GeoJSON.');
+                            return;
+                        }
+                        L.geoJSON(data, {
+                            style: {
+                                fillColor: '#00aaff',
+                                weight: 1,
+                                opacity: 1,
+                                color: 'white',
+                                fillOpacity: 0.3
+                            },
+                            onEachFeature: (feature, layer) => {
+                                const name = feature.properties.name || 'Unknown';
+                                const slug = name.toLowerCase().replace(/\s+/g, '-').trim();
+
+                                // Hover tooltip
+                                let hoverTimeout;
+                                layer.on('mouseover', (e) => {
+                                    hoverTimeout = setTimeout(() => {
+                                        layer.bindPopup(name, { className: 'hover-tooltip' }).openPopup();
+                                    }, 300);
+                                });
+                                layer.on('mouseout', () => {
+                                    clearTimeout(hoverTimeout);
+                                    layer.closePopup();
+                                });
+
+                                // Click action
+                                layer.on('click', () => {
+                                    window.location.href = `${baseUrl}${permalinkBase}${slug}`;
+                                });
+                            }
+                        }).addTo(flatMap);
+                    })
+                    .catch(error => {
+                        console.error('Error loading US states GeoJSON:', error);
+                        showError('Failed to load US states map data. Please try refreshing.');
+                    });
                 })
                 .catch(error => {
                     console.error('Error loading country GeoJSON:', error);
                     showError('Failed to load country map data. Please try refreshing.');
-                });
-
-            // Load and render US states for flat map
-            fetch(usStatesGeoJsonUrl)
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load US states GeoJSON`);
-                    return response.json();
-                })
-                .then(data => {
-                    if (!data.features) throw new Error('Invalid GeoJSON: No features found');
-                    // Filter by displayedLocations and valid geometries
-                    data.features = data.features.filter(feature => 
-                        isValidGeometry(feature.geometry) && 
-                        displayedLocations.includes(feature.properties.name)
-                    );
-                    if (data.features.length === 0) {
-                        showError('No matching US states found in GeoJSON.');
-                        return;
-                    }
-                    L.geoJSON(data, {
-                        style: {
-                            fillColor: '#00aaff',
-                            weight: 1,
-                            opacity: 1,
-                            color: 'white',
-                            fillOpacity: 0.3
-                        },
-                        onEachFeature: (feature, layer) => {
-                            const name = feature.properties.name || 'Unknown';
-                            const slug = name.toLowerCase().replace(/\s+/g, '-').trim();
-
-                            // Hover tooltip
-                            let hoverTimeout;
-                            layer.on('mouseover', (e) => {
-                                hoverTimeout = setTimeout(() => {
-                                    layer.bindPopup(name, { className: 'hover-tooltip' }).openPopup();
-                                }, 300);
-                            });
-                            layer.on('mouseout', () => {
-                                clearTimeout(hoverTimeout);
-                                layer.closePopup();
-                            });
-
-                            // Click action
-                            layer.on('click', () => {
-                                window.location.href = `${baseUrl}${permalinkBase}${slug}`;
-                            });
-                        }
-                    }).addTo(flatMap);
-                })
-                .catch(error => {
-                    console.error('Error loading US states GeoJSON:', error);
-                    showError('Failed to load US states map data. Please try refreshing.');
                 });
 
             // Initialize Globe (Globe.GL)
