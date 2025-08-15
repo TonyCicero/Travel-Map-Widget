@@ -65,6 +65,12 @@
 .leaflet-popup-content {
     font-size: 14px;
 }
+.hover-tooltip .leaflet-popup-content-wrapper {
+    background: white;
+    color: black;
+    padding: 5px;
+    border-radius: 3px;
+}
 #error-message {
     display: none;
     color: red;
@@ -75,4 +81,32 @@
     background: white;
     padding: 10px;
     border-radius: 5px;
+}
+/* Settings page styles */
+.form-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.form-table th {
+    width: 30%;
+    padding: 10px;
+    text-align: right;
+    vertical-align: top;
+    font-weight: bold;
+}
+.form-table td {
+    width: 70%;
+    padding: 10px;
+}
+.form-table input[type="color"],
+.form-table input[type="text"],
+.form-table input[type="number"] {
+    margin-left: 10px;
+    vertical-align: middle;
+}
+.form-table .description {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
 }
