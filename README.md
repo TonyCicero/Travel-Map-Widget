@@ -78,7 +78,8 @@ The Travel Map Widget allows you to embed an interactive map on your WordPress s
 
 - **1.0.0**:
   - Initial release.
-
+- **1.1.0**:
+  - Color Customizations.
 
 ## License
 
