@@ -3,7 +3,7 @@
 A WordPress plugin that adds an interactive travel map widget to your website, featuring a toggle between a flat map and a 3D globe. Users can manage displayed countries and US states via a settings page and customize the permalink structure for location pages.
 
 - **Plugin Name**: Travel Map Widget
-- **Version**: 1.0.0
+- **Version**: 1.1.0
 - **Author**: Tony Cicero
 - **License**: GPL v2 or later
 - **Requires at least**: WordPress 6.0
