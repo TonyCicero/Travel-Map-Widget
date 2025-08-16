@@ -3,7 +3,7 @@
  * Plugin Name: Travel Map Widget
  * Plugin URI: https://github.com/TonyCicero/Travel-Map-Widget
  * Description: An interactive travel map widget with toggle between flat map and globe, managed locations via checkboxes, configurable permalinks, and customizable colors.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: Tony Cicero
  * Author URI: https://github.com/TonyCicero
  * License: GPL v2 or later
@@ -77,6 +77,12 @@ function travel_map_widget_enqueue_scripts() {
     $globe_side_opacity = get_option('travel_map_globe_side_opacity', '0.15');
     $globe_stroke_color = get_option('travel_map_globe_stroke_color', '#111111');
     $globe_background_color = get_option('travel_map_globe_background_color', '#000000');
+    $flat_map_zoom = get_option('travel_map_flat_map_zoom', 2);
+    $flat_map_lat = get_option('travel_map_flat_map_lat', 20);
+    $flat_map_lng = get_option('travel_map_flat_map_lng', 0);
+    $globe_lat = get_option('travel_map_globe_lat', 39);
+    $globe_lng = get_option('travel_map_globe_lng', -76);
+    $globe_alt = get_option('travel_map_globe_alt', 2.5);
     wp_localize_script('leaflet-js', 'travelMapVars', [
         'baseUrl' => home_url(),
         'displayedLocations' => $locations_array,
@@ -92,7 +98,13 @@ function travel_map_widget_enqueue_scripts() {
         'globeSideColor' => $globe_side_color,
         'globeSideOpacity' => floatval($globe_side_opacity),
         'globeStrokeColor' => $globe_stroke_color,
-        'globeBackgroundColor' => $globe_background_color
+        'globeBackgroundColor' => $globe_background_color,
+        'flatMapZoom' => floatval($flat_map_zoom),
+        'flatMapLat' => floatval($flat_map_lat),
+        'flatMapLng' => floatval($flat_map_lng),
+        'globeLat' => floatval($globe_lat),
+        'globeLng' => floatval($globe_lng),
+        'globeAlt' => floatval($globe_alt)
     ]);
 }
 add_action('wp_enqueue_scripts', 'travel_map_widget_enqueue_scripts');
@@ -137,6 +149,12 @@ function travel_map_widget_shortcode() {
             const globeSideOpacity = travelMapVars.globeSideOpacity || 0.15;
             const globeStrokeColor = travelMapVars.globeStrokeColor;
             const globeBackgroundColor = travelMapVars.globeBackgroundColor;
+            const flatMapZoom = travelMapVars.flatMapZoom || 2;
+            const flatMapLat = travelMapVars.flatMapLat || 20;
+            const flatMapLng = travelMapVars.flatMapLng || 0;
+            const globeLat = travelMapVars.globeLat || 39;
+            const globeLng = travelMapVars.globeLng || -76;
+            const globeAlt = travelMapVars.globeAlt || 2.5;
 
             const showError = (message) => {
                 const errorDiv = document.getElementById('error-message');
@@ -159,7 +177,7 @@ function travel_map_widget_shortcode() {
                 return true;
             };
 
-            const flatMap = L.map('flat-map').setView([20, 0], 2);
+            const flatMap = L.map('flat-map').setView([flatMapLat, flatMapLng], flatMapZoom);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                 maxZoom: 18,
@@ -206,54 +224,54 @@ function travel_map_widget_shortcode() {
                             });
                         }
                     }).addTo(flatMap).bringToFront();
-                    flatMap.fitBounds(L.geoJSON(data).getBounds());
+                    //flatMap.fitBounds(L.geoJSON(data).getBounds());
+
+                    fetch(usStatesGeoJsonUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.features) throw new Error('Invalid GeoJSON: No features found');
+                        data.features = data.features.filter(feature => 
+                            isValidGeometry(feature.geometry) && displayedLocations.includes(feature.properties.name)
+                        );
+                        if (data.features.length === 0) {
+                            showError('No matching US states found in GeoJSON.');
+                            return;
+                        }
+                        L.geoJSON(data, {
+                            style: {
+                                fillColor: usStateFillColor,
+                                weight: 1,
+                                opacity: 1,
+                                color: usStateBorderColor,
+                                fillOpacity: usStateFillOpacity
+                            },
+                            onEachFeature: (feature, layer) => {
+                                const name = feature.properties.name || 'Unknown';
+                                const slug = name.toLowerCase().replace(/\s+/g, '-').trim();
+                                let hoverTimeout;
+                                layer.on('mouseover', () => {
+                                    hoverTimeout = setTimeout(() => {
+                                        layer.bindPopup(name, { className: 'hover-tooltip' }).openPopup();
+                                    }, 300);
+                                });
+                                layer.on('mouseout', () => {
+                                    clearTimeout(hoverTimeout);
+                                    layer.closePopup();
+                                });
+                                layer.on('click', () => {
+                                    window.location.href = `${baseUrl}${permalinkBase}${slug}`;
+                                });
+                            }
+                        }).addTo(flatMap);
+                    })
+                    .catch(error => {
+                        console.error('Error loading US states GeoJSON:', error);
+                        showError('Failed to load US states map data. Please try refreshing.');
+                    });
                 })
                 .catch(error => {
                     console.error('Error loading country GeoJSON:', error);
                     showError('Failed to load country map data. Please try refreshing.');
-                });
-
-            fetch(usStatesGeoJsonUrl)
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.features) throw new Error('Invalid GeoJSON: No features found');
-                    data.features = data.features.filter(feature => 
-                        isValidGeometry(feature.geometry) && displayedLocations.includes(feature.properties.name)
-                    );
-                    if (data.features.length === 0) {
-                        showError('No matching US states found in GeoJSON.');
-                        return;
-                    }
-                    L.geoJSON(data, {
-                        style: {
-                            fillColor: usStateFillColor,
-                            weight: 1,
-                            opacity: 1,
-                            color: usStateBorderColor,
-                            fillOpacity: usStateFillOpacity
-                        },
-                        onEachFeature: (feature, layer) => {
-                            const name = feature.properties.name || 'Unknown';
-                            const slug = name.toLowerCase().replace(/\s+/g, '-').trim();
-                            let hoverTimeout;
-                            layer.on('mouseover', () => {
-                                hoverTimeout = setTimeout(() => {
-                                    layer.bindPopup(name, { className: 'hover-tooltip' }).openPopup();
-                                }, 300);
-                            });
-                            layer.on('mouseout', () => {
-                                clearTimeout(hoverTimeout);
-                                layer.closePopup();
-                            });
-                            layer.on('click', () => {
-                                window.location.href = `${baseUrl}${permalinkBase}${slug}`;
-                            });
-                        }
-                    }).addTo(flatMap);
-                })
-                .catch(error => {
-                    console.error('Error loading US states GeoJSON:', error);
-                    showError('Failed to load US states map data. Please try refreshing.');
                 });
 
             const globe = Globe()
@@ -272,7 +290,7 @@ function travel_map_widget_shortcode() {
                 })
                 (document.getElementById('globe'));
 
-            globe.pointOfView({ lat: 39, lng: -76, altitude: 2.5 }, 0);
+            globe.pointOfView({ lat: globeLat, lng: globeLng, altitude: globeAlt }, 0);
 
             fetch(countryGeoJsonUrl)
                 .then(response => response.json())
@@ -352,6 +370,12 @@ function travel_map_widget_settings_page() {
         update_option('travel_map_globe_side_opacity', $side_opacity);
         update_option('travel_map_globe_stroke_color', sanitize_hex_color($_POST['globe_stroke_color']) ?: '#111111');
         update_option('travel_map_globe_background_color', sanitize_hex_color($_POST['globe_background_color']) ?: '#000000');
+        update_option('travel_map_flat_map_zoom', intval($_POST['flat_map_zoom']) >= 2 && intval($_POST['flat_map_zoom']) <= 18 ? intval($_POST['flat_map_zoom']) : 2);
+        update_option('travel_map_flat_map_lat', floatval($_POST['flat_map_lat']) >= -90 && floatval($_POST['flat_map_lat']) <= 90 ? floatval($_POST['flat_map_lat']) : 20);
+        update_option('travel_map_flat_map_lng', floatval($_POST['flat_map_lng']) >= -180 && floatval($_POST['flat_map_lng']) <= 180 ? floatval($_POST['flat_map_lng']) : 0);
+        update_option('travel_map_globe_lat', floatval($_POST['globe_lat']) >= -90 && floatval($_POST['globe_lat']) <= 90 ? floatval($_POST['globe_lat']) : 39);
+        update_option('travel_map_globe_lng', floatval($_POST['globe_lng']) >= -180 && floatval($_POST['globe_lng']) <= 180 ? floatval($_POST['globe_lng']) : -76);
+        update_option('travel_map_globe_alt', floatval($_POST['globe_alt']) >= 1 && floatval($_POST['globe_alt']) <= 10 ? floatval($_POST['globe_alt']) : 2.5);
     }
 
     $displayed_locations = get_option('travel_map_displayed_locations', '');
@@ -369,6 +393,12 @@ function travel_map_widget_settings_page() {
     $globe_side_opacity = get_option('travel_map_globe_side_opacity', '0.15');
     $globe_stroke_color = get_option('travel_map_globe_stroke_color', '#111111');
     $globe_background_color = get_option('travel_map_globe_background_color', '#000000');
+    $flat_map_zoom = get_option('travel_map_flat_map_zoom', 2);
+    $flat_map_lat = get_option('travel_map_flat_map_lat', 20);
+    $flat_map_lng = get_option('travel_map_flat_map_lng', 0);
+    $globe_lat = get_option('travel_map_globe_lat', 39);
+    $globe_lng = get_option('travel_map_globe_lng', -76);
+    $globe_alt = get_option('travel_map_globe_alt', 2.5);
 
     $countries = [
         'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 
@@ -504,6 +534,40 @@ function travel_map_widget_settings_page() {
                 </tr>
             </table>
 
+            <h2>Map Focus Settings</h2>
+            <table class="form-table">
+                <tr>
+                    <th colspan="2"><h3>Flat Map</h3></th>
+                </tr>
+                <tr>
+                    <th><label for="flat_map_zoom">Default Zoom (2-18):</label></th>
+                    <td><input type="number" id="flat_map_zoom" name="flat_map_zoom" value="<?php echo esc_attr($flat_map_zoom); ?>" step="0.1" min="2" max="18"></td>
+                </tr>
+                <tr>
+                    <th><label for="flat_map_lat">Default Latitude (-90 to 90):</label></th>
+                    <td><input type="number" id="flat_map_lat" name="flat_map_lat" value="<?php echo esc_attr($flat_map_lat); ?>" step="0.1" min="-90" max="90"></td>
+                </tr>
+                <tr>
+                    <th><label for="flat_map_lng">Default Longitude (-180 to 180):</label></th>
+                    <td><input type="number" id="flat_map_lng" name="flat_map_lng" value="<?php echo esc_attr($flat_map_lng); ?>" step="0.1" min="-180" max="180"></td>
+                </tr>
+                <tr>
+                    <th colspan="2"><h3>Globe</h3></th>
+                </tr>
+                <tr>
+                    <th><label for="globe_lat">Default Latitude (-90 to 90):</label></th>
+                    <td><input type="number" id="globe_lat" name="globe_lat" value="<?php echo esc_attr($globe_lat); ?>" step="0.1" min="-90" max="90"></td>
+                </tr>
+                <tr>
+                    <th><label for="globe_lng">Default Longitude (-180 to 180):</label></th>
+                    <td><input type="number" id="globe_lng" name="globe_lng" value="<?php echo esc_attr($globe_lng); ?>" step="0.1" min="-180" max="180"></td>
+                </tr>
+                <tr>
+                    <th><label for="globe_alt">Default Altitude (1-10):</label></th>
+                    <td><input type="number" id="globe_alt" name="globe_alt" value="<?php echo esc_attr($globe_alt); ?>" step="0.1" min="1" max="10"></td>
+                </tr>
+            </table>
+
             <input type="submit" name="submit" value="Save Changes" class="button-primary" style="margin-top: 20px;">
         </form>
         <script>
@@ -598,6 +662,42 @@ function travel_map_widget_register_settings() {
     ]);
     register_setting('travel_map_settings', 'travel_map_globe_background_color', [
         'sanitize_callback' => 'sanitize_hex_color'
+    ]);
+    register_setting('travel_map_settings', 'travel_map_flat_map_zoom', [
+        'sanitize_callback' => function($value) {
+            $value = intval($value);
+            return ($value >= 2 && $value <= 18) ? $value : 2;
+        }
+    ]);
+    register_setting('travel_map_settings', 'travel_map_flat_map_lat', [
+        'sanitize_callback' => function($value) {
+            $value = floatval($value);
+            return ($value >= -90 && $value <= 90) ? $value : 20;
+        }
+    ]);
+    register_setting('travel_map_settings', 'travel_map_flat_map_lng', [
+        'sanitize_callback' => function($value) {
+            $value = floatval($value);
+            return ($value >= -180 && $value <= 180) ? $value : 0;
+        }
+    ]);
+    register_setting('travel_map_settings', 'travel_map_globe_lat', [
+        'sanitize_callback' => function($value) {
+            $value = floatval($value);
+            return ($value >= -90 && $value <= 90) ? $value : 39;
+        }
+    ]);
+    register_setting('travel_map_settings', 'travel_map_globe_lng', [
+        'sanitize_callback' => function($value) {
+            $value = floatval($value);
+            return ($value >= -180 && $value <= 180) ? $value : -76;
+        }
+    ]);
+    register_setting('travel_map_settings', 'travel_map_globe_alt', [
+        'sanitize_callback' => function($value) {
+            $value = floatval($value);
+            return ($value >= 1 && $value <= 10) ? $value : 2.5;
+        }
     ]);
 }
 add_action('admin_init', 'travel_map_widget_register_settings');
